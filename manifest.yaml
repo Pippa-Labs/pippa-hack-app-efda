@@ -39,7 +39,7 @@ persistence: none
 # It does not decide who owns the app, and nothing in this file does. Pippa
 # Labs created this repository for your Pippa account, so every app published
 # from it is yours. docs/REVIEW_AND_SHARING.md is the whole story.
-app_author_name: ""
+app_author_name: "CampusCompass"
 
 app:
   # Filled in for you. A new repository replaces this placeholder within a
@@ -55,7 +55,7 @@ app:
   # Hyphens are not valid in an app id anywhere. `git remote get-url origin`
   # tells you the repository name.
   id: hack.app_efda
-  name: Days Until
+  name: CampusFit
   # The version you are pushing. Pippa keeps a copy of the code of every
   # version, so pushing a new version never changes an older one: the approved
   # version keeps working for everyone while you try the next.
@@ -75,8 +75,9 @@ app:
   # badge Pippa shows is parsed from "[via <name> <version> by <author name>]"
   # (the author name is `app_author_name` above) and splits on the first "by".
   summary: >-
-    Works out how many days there are until a date you name, and says which
-    day of the week it falls on.
+    Checks which upcoming Imperial club sessions and campus events fit around
+    a student timetable, allowing travel time between campuses. Uses sample
+    timetable, club and event data, and sends nothing anywhere.
 
 # Who can install it. `personal` means a person's own Pippa.
 agent_types:
@@ -99,50 +100,116 @@ agent_types:
 #     "my calendar" belong to Pippa Diary; a phrase using them will lose.
 
 outcomes:
-  - id: days.until
-    summary: Count the days between now and a date, and name the weekday
+  - id: clubs.fit
+    summary: >-
+      List upcoming sessions of the Imperial clubs a student follows, say
+      which clash with their lectures once travel between campuses is
+      allowed for, and name the next one they can attend
     example_phrases:
-      - how many days until
-      - how long until
-      - how many sleeps until
-      - days left until
-      - what day of the week is
-    # What Pippa extracts from the user's message and hands you. A model reads
-    # `description` to do that extraction, so write it as an instruction to
-    # whoever is filling the field in.
+      - which judo sessions can i make
+      - does club training clash with my lectures
+      - when can i next make it to judo
+      - which club sessions fit around my lectures
+      - next club session i can actually attend
+      - can i get to climbing after class
+      - is there a badminton session that fits my timetable
     inputs:
-      # `required: false`, although the app is useless without a date, and
-      # that is deliberate. A missing REQUIRED input is refused inside the
-      # runtime before your code runs, and the user is shown a message that
-      # blames your app for a question they asked perfectly reasonably. An
-      # optional input simply arrives absent, your code notices, and you
-      # raise an error that says something true. Keep `required: true` for
-      # inputs the extractor can always supply.
-      - name: date
+      - name: clubs
         type: string
         required: false
         description: >-
-          The target date, as the user wrote it — for example "25 December",
-          "2027-01-01" or "next Friday". If the message does not name a date,
-          return an empty string rather than guessing.
-      - name: timezone
-        type: timezone
-        required: false
-        description: The user's time zone, so "today" means their today.
-    # What you promise to return. Returning anything else is refused; omitting
-    # a declared field is refused too. Keep it small and specific.
-    output:
-      - name: days
+          The Imperial clubs or societies the student follows or asks about,
+          as a comma-separated list of names, for example "Judo, Climbing".
+          Write each club's name only, without words like "club" or
+          "session". If the message names no club, return an empty string
+          rather than guessing.
+      - name: days_ahead
         type: integer
-        description: How many whole days until the date. Negative if it has passed.
-      - name: target_date
+        required: false
+        description: >-
+          How many days ahead to look, only if the user said so ("next two
+          weeks" is 14). Leave this out entirely if they did not say. Never
+          guess a number.
+    output:
+      - name: clubs
+        type: array
+        item_type: string
+        description: The clubs whose sessions were checked.
+      - name: sessions
+        type: array
+        item_type: string
+        description: >-
+          Each upcoming session, in time order, with where it is and whether
+          it fits or why it clashes.
+      - name: can_attend_count
+        type: integer
+        description: How many of those sessions fit around the timetable.
+      - name: clash_count
+        type: integer
+        description: How many of those sessions clash.
+      - name: next_attendable
         type: string
-        description: The date you actually used, as YYYY-MM-DD.
-      - name: weekday
+        required: false
+        description: The next session the student can attend, if there is one.
+      - name: next_attendable_start
+        type: datetime
+        required: false
+        description: When that session starts.
+      - name: first_clash
         type: string
-        description: The day of the week the date falls on.
-      - name: already_passed
+        required: false
+        description: The next session that clashes, and why.
+      - name: sample_data
         type: boolean
+        description: Always true. The timetable and club sessions are a sample.
+
+  - id: events.discover
+    summary: >-
+      Discover upcoming Imperial and Union events on campus, and say which
+      ones fit around the student's lectures
+    example_phrases:
+      - what events are happening on campus
+      - any union events coming up
+      - imperial events i could go to
+      - what's happening at the union
+      - union socials and nights out
+      - talks and fairs at imperial
+      - student events near south kensington
+    inputs:
+      - name: host
+        type: string
+        required: false
+        description: >-
+          Who runs the events the user wants: "Imperial" for the college,
+          "Union" for Imperial College Union, its bars and societies.
+          Return an empty string if they did not say, or want both.
+      - name: days_ahead
+        type: integer
+        required: false
+        description: >-
+          How many days ahead to look, only if the user said so ("next two
+          weeks" is 14). Leave this out entirely if they did not say. Never
+          guess a number.
+    output:
+      - name: host
+        type: string
+        description: '"Imperial", "Union" or "Imperial and Union".'
+      - name: events
+        type: array
+        item_type: string
+        description: >-
+          Each upcoming event, in time order, marked Imperial or Union, with
+          where it is and whether it fits or why it clashes.
+      - name: fits_count
+        type: integer
+        description: How many of those events fit around the timetable.
+      - name: next_fitting_event
+        type: string
+        required: false
+        description: The next event the student can go to, if there is one.
+      - name: sample_data
+        type: boolean
+        description: Always true. The timetable and events are a sample.
 
 # ── API keys your app needs (this example needs none) ────────────────────────
 #
