@@ -39,7 +39,7 @@ persistence: none
 # It does not decide who owns the app, and nothing in this file does. Pippa
 # Labs created this repository for your Pippa account, so every app published
 # from it is yours. docs/REVIEW_AND_SHARING.md is the whole story.
-app_author_name: "CampusCompass"
+app_author_name: "Prashanti"
 
 app:
   # Filled in for you. A new repository replaces this placeholder within a
