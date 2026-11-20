@@ -6,6 +6,7 @@ the build installs.
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 
 import pytest
@@ -31,6 +32,24 @@ def test_the_manifest_is_valid():
     assert [o.id for o in app.manifest.outcomes] == ["clubs.fit", "events.discover"]
 
 
+@pytest.mark.parametrize("outcome, inputs", [
+    ("clubs.fit", {"clubs": "Judo"}),
+    ("clubs.fit", {"clubs": "Dance"}),          # nothing fits: optional fields absent
+    ("clubs.fit", {}),
+    ("events.discover", {}),
+    ("events.discover", {"host": "Union"}),
+])
+def test_every_answer_survives_the_trip_back_as_json(outcome, inputs):
+    """v0.1.0 returned a datetime object, which passed here and crashed live.
+
+    LocalRunner runs the app in this process, so a datetime object in `data`
+    looks fine. Pippa runs it in a sandbox and the answer travels back as
+    JSON, which cannot encode one: "That app stopped unexpectedly."
+    """
+    result = call(outcome, inputs)
+    json.dumps({"data": result.data, "narrative": result.narrative})
+
+
 # ── The Judo demo: one session clashes, the next one fits ───────────────────
 
 
@@ -49,10 +68,7 @@ def test_judo_tuesday_clashes_and_thursday_is_next():
     assert "35 min" in data["first_clash"]
 
     assert "Thu 26 Nov 19:00-21:00" in data["next_attendable"]
-    start = data["next_attendable_start"]
-    if isinstance(start, str):
-        start = datetime.fromisoformat(start)
-    assert start == datetime(2026, 11, 26, 19, 0, tzinfo=timezone.utc)
+    assert data["next_attendable_start"] == "2026-11-26T19:00:00+00:00"
     assert data["sample_data"] is True
     assert "next session you can make is Judo" in result.narrative
 

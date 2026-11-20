@@ -88,7 +88,10 @@ class App:
         }
         if fits:
             data["next_attendable"] = fits[0].describe()
-            data["next_attendable_start"] = fits[0].start
+            # An ISO-8601 string with its UTC offset, never a datetime object:
+            # the result travels back to Pippa as JSON, and json cannot encode
+            # a datetime, so returning one crashes the app after handle().
+            data["next_attendable_start"] = fits[0].start.isoformat()
         if clashes:
             data["first_clash"] = clashes[0].describe()
 
